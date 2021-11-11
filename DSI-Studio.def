@@ -1,0 +1,59 @@
+Bootstrap: docker
+From: ubuntu:20.04 
+
+%post
+DEBIAN_FRONTEND=noninteractive
+# Prepare environment
+apt update && apt full-upgrade -y && \
+apt install -y --no-install-recommends \
+unzip \
+curl \
+make \
+git \
+libboost-all-dev \
+zlib1g-dev \
+ca-certificates \
+qt5-qmake \
+qt5-default \
+libqt5charts5-dev \
+libqt5opengl5-dev \
+gcc-7 \
+g++-7
+
+ln -s /usr/bin/g++-7 /usr/bin/g++
+ln -s /usr/bin/gcc-7 /usr/bin/gcc
+
+mkdir /opt/dsi-studio
+cd /opt/dsi-studio
+git clone https://github.com/frankyeh/DSI-Studio.git && cd DSI-Studio && git reset --hard 4ab34edf4152bab66dd3cb5b38d498ba7d199e99
+cd ..
+mv DSI-Studio src
+git clone https://github.com/frankyeh/TIPL.git && cd TIPL && git reset --hard 66146827c41b03d2fb77774524e7e5e1475918f7
+cd ..
+mv TIPL src/tipl
+mkdir -p /opt/dsi-studio/build
+cd /opt/dsi-studio/build
+qmake ../src/dsi_studio.pro
+make
+
+cd /opt/dsi-studio
+mv build/dsi_studio .
+chmod 755 dsi_studio
+#RUN cp -R src/other/* .
+rm -rf src build
+git clone https://github.com/frankyeh/DSI-Studio-atlas.git
+rm -fr DSI-Studio-atlas/.git
+mv DSI-Studio-atlas atlas
+PATH="$PATH:/opt/dsi-studio"
+
+mkdir /data
+cd /data
+%environment
+export DEBIAN_FRONTEND=noninteractive
+export PATH="$PATH:/opt/dsi-studio"
+%runscript
+cd /data
+exec /opt/dsi-studio/dsi_studio "$@"
+%startscript
+cd /data
+exec /opt/dsi-studio/dsi_studio "$@"
